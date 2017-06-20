@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"crypto/des"
+	"fmt"
 )
 
 //des加密
 func DesEncrypt(origData, key []byte) ([]byte, error) {
 	block, err := des.NewCipher(key)
+	fmt.Println(err)
 	if err != nil {
 		return nil, err
 	}
