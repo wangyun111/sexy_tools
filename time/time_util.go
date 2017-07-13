@@ -187,3 +187,10 @@ func GetFormatTime(layout string, paramsTime time.Time) (formatTime string) {
 	formatTime = paramsTime.Format(layout)
 	return
 }
+
+//获取今天剩余秒数
+func GetTodayLastSecond() time.Duration {
+	today := GetNowTime("2006-01-02") + " 23:59:59"
+	end, _ := time.ParseInLocation(Layout, today, time.Local)
+	return time.Duration(end.Unix()-time.Now().Local().Unix()) * time.Second
+}
