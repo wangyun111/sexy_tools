@@ -9,19 +9,24 @@ type replayData struct {
 	Data string `json:"data"`
 }
 
-//操作成功
+//默认操作成功
 func OperationSuccess() replayMsg {
 	return replayMsg{Code: 200, SubMsg: "操作成功"}
 }
 
-//操作失败
+//自定义msg操作成功
+func OperationSuccessMsg(msg string) replayMsg {
+	return replayMsg{Code: 200, SubMsg: msg}
+}
+
+//默认操作失败
 func OperationFalse() replayMsg {
 	return replayMsg{Code: 201, SubMsg: "操作失败"}
 }
 
 //自定义失败原因
-func OperationFalseMsg(errmsg string) replayMsg {
-	return replayMsg{Code: 201, SubMsg: errmsg}
+func OperationFalseMsg(msg string) replayMsg {
+	return replayMsg{Code: 201, SubMsg: "操作失败:" + msg}
 }
 
 //重复添加
@@ -31,32 +36,32 @@ func RepetitionFalse() replayMsg {
 
 //返回数据为空
 func ReturnDataNull() replayMsg {
-	return replayMsg{Code: 204, SubMsg: "返回数据为空"}
-}
-
-//登录成功
-func LoginSuccess() replayMsg {
-	return replayMsg{Code: 206, SubMsg: "登录成功"}
-}
-
-//登录失败
-func LoginFailure() replayMsg {
-	return replayMsg{Code: 207, SubMsg: "登录失败"}
+	return replayMsg{Code: 203, SubMsg: "返回数据为空"}
 }
 
 //请登录
 func PleaseLogin() replayMsg {
-	return replayMsg{Code: 208, SubMsg: "请登录"}
-}
-
-//参数错误
-func ParamError(msg string) replayMsg {
-	return replayMsg{Code: 403, SubMsg: msg}
+	return replayMsg{Code: 301, SubMsg: "请登录"}
 }
 
 //参数为空
 func ParamNull() replayMsg {
-	return replayMsg{Code: 402, SubMsg: "参数为空"}
+	return replayMsg{Code: 401, SubMsg: "参数为空"}
+}
+
+//参数为空
+func ParamNullMsg(msg string) replayMsg {
+	return replayMsg{Code: 401, SubMsg: msg}
+}
+
+//默认参数错误
+func ParamError() replayMsg {
+	return replayMsg{Code: 402, SubMsg: "参数有误:"}
+}
+
+//自定义参数错误
+func ParamErrorMsg(msg string) replayMsg {
+	return replayMsg{Code: 402, SubMsg: "参数有误:" + msg}
 }
 
 // 自定义返回对象
