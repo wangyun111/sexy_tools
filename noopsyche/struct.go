@@ -6,16 +6,26 @@ import (
 )
 
 //根据 sql 创建结构体
-func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (resultStruct string) {
+//根据 sql 创建结构体
+func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (tebaleRemark, tableName, allColunm, resultStruct string) {
+	defer func() {
+		if allColunm != "" {
+			allColunm = allColunm[:len(allColunm)-1]
+		}
+	}()
 	spaceStr := " "
 	spaceNumber := len(maxColunm)
 	var lastCommentIndex int
-	var tebaleRemark, tableName string
 	beginIndex := strings.IndexAny(str, "(")
 	titleStr := str[:beginIndex]
 	tableArr := strings.Fields(titleStr)
 	tableName = tableArr[len(tableArr)-1]
-	tableName = strings.ToUpper(tableName[:1]) + tableName[1:]
+	tableArr = strings.Split(tableName, "_")
+	var finalTableName string
+	for i := 0; i < len(tableArr); i++ {
+		finalTableName += strings.ToUpper(tableArr[i][:1]) + tableArr[i][1:]
+	}
+	tableName = finalTableName
 	lastBracketIndex := strings.LastIndexAny(str, ")")
 	lastStr := str[lastBracketIndex+1:]
 	lastCommentIndex = strings.Index(lastStr, "COMMENT='")
@@ -31,7 +41,8 @@ func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (resultSt
 	str = str[beginIndex+1 : endIndex]
 	str = strings.TrimSpace(str)
 	str = str[:len(str)-1]
-	arr := strings.Split(str, ",")
+	arr := strings.Split(str, "',")
+	var rowCount int
 	for i := 0; i < len(arr); i++ {
 		columns := arr[i]
 		spacingStr := strings.TrimSpace(columns)
@@ -43,6 +54,12 @@ func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (resultSt
 			continue
 		} else {
 			sname = spaceArr[0]
+			allColunm += sname + ","
+			allColunmLen := len(allColunm)
+			if allColunmLen-rowCount > 70 {
+				allColunm += "\n"
+				rowCount = allColunmLen
+			}
 			snameArr := strings.Split(sname, "_")
 			snameArrLen := len(snameArr)
 			if snameArrLen > 0 {
@@ -63,7 +80,6 @@ func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (resultSt
 				sremark = strings.Replace(spaceArr[spaceArrLen-1], "'", "", -1)
 			}
 		}
-
 		if strings.EqualFold("TINYINT", stype) || strings.EqualFold("SMALLINT", stype) || strings.EqualFold("MEDIUMINT", stype) ||
 			strings.EqualFold("INT", stype) || strings.EqualFold("INTEGER", stype) || strings.EqualFold("BIGINT", stype) {
 			stype = "int"
