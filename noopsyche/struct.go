@@ -6,7 +6,6 @@ import (
 )
 
 //根据 sql 创建结构体
-//根据 sql 创建结构体
 func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (tebaleRemark, tableName, allColunm, resultStruct string) {
 	defer func() {
 		if allColunm != "" {
@@ -41,7 +40,7 @@ func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (tebaleRe
 	str = str[beginIndex+1 : endIndex]
 	str = strings.TrimSpace(str)
 	str = str[:len(str)-1]
-	arr := strings.Split(str, "',")
+	arr := strings.Split(str, ",\n")
 	var rowCount int
 	for i := 0; i < len(arr); i++ {
 		columns := arr[i]
