@@ -1,12 +1,77 @@
 package noopsyche
 
 import (
-	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/xorm"
 	"strings"
 )
 
-//根据 sql 创建结构体
-func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (tebaleRemark, tableName, allColunm, resultStruct string) {
+var engine *xorm.Engine
+var dataBaseUrl = "root:123456@tcp(127.0.0.1:3306)/wangyun?charset=utf8mb4&loc=Asia%2FShanghai"
+
+//@Summary 通过数据库获取全部表或指定表的结构体
+//@Param   tableName 需要获取的表名
+func InitializeDateBaseStruct(tableName ...string) (initializeStruct, errmsg string) {
+	engine, err := xorm.NewEngine("mysql", dataBaseUrl)
+	dataBase := dataBaseUrl[strings.Index(dataBaseUrl, "/")+1 : strings.Index(dataBaseUrl, "?")]
+	if err != nil {
+		errmsg += "初始化数据库失败,errmsg:=" + err.Error()
+		return
+	} else {
+		tablesMap, err := engine.QueryString("show tables from " + dataBase)
+		if err != nil {
+			errmsg += "获取数据库表列表失败,errmsg:=" + err.Error()
+			return
+		}
+		if len(tablesMap) == 0 {
+			errmsg += "数据库表为空,请创建后重试。"
+			return
+		}
+		tNumber := len(tableName)
+		if tNumber > 0 {
+			for _, val := range tableName {
+				tSmap, err := engine.QueryString("SHOW CREATE TABLE " + val)
+				if err != nil {
+					errmsg += "查询表创建sql失败:errmsg:=" + err.Error()
+					continue
+				}
+				createSql := tSmap[0]["Create Table"]
+				createSql = strings.Replace(createSql, "`", "", -1)
+				maxColumnSql := GetMaxColumns(dataBase, val)
+				var maxColumn string
+				_, err = engine.Sql(maxColumnSql).Get(&maxColumn)
+				if err != nil {
+					errmsg += "获取" + val + "表最长列失败,errmsg:=" + err.Error()
+				}
+				_, _, _, _, structStr := NewNoopsycheCreateStruct(createSql, maxColumn, false, false)
+				initializeStruct += structStr + lineFeed
+			}
+		} else {
+			for _, t := range tablesMap {
+				for _, val := range t {
+					tSmap, err := engine.QueryString("SHOW CREATE TABLE " + val)
+					if err != nil {
+						errmsg += "查询表创建sql失败:errmsg:=" + err.Error()
+						continue
+					}
+					createSql := tSmap[0]["Create Table"]
+					createSql = strings.Replace(createSql, "`", "", -1)
+					maxColumnSql := GetMaxColumns(dataBase, val)
+					var maxColumn string
+					_, err = engine.Sql(maxColumnSql).Get(&maxColumn)
+					if err != nil {
+						errmsg += "获取" + val + "表最长列失败,errmsg:=" + err.Error()
+					}
+					_, _, _, _, structStr := NoopsycheCreateStruct(createSql, maxColumn, false, false)
+					initializeStruct += structStr + lineFeed
+				}
+			}
+		}
+	}
+	return
+}
+
+func NoopsycheCreateStruct(sqlStr, maxColunm string, isBson, isJson bool) (tebaleRemark, structName, tableName, allColunm, resultStruct string) {
 	defer func() {
 		if allColunm != "" {
 			allColunm = allColunm[:len(allColunm)-1]
@@ -14,42 +79,42 @@ func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (tebaleRe
 	}()
 	spaceStr := " "
 	spaceNumber := len(maxColunm)
+	if spaceNumber == 0 {
+		spaceNumber = 15
+	}
 	var lastCommentIndex int
-	beginIndex := strings.IndexAny(str, "(")
-	titleStr := str[:beginIndex]
+	beginIndex := strings.IndexAny(sqlStr, "(")
+	titleStr := sqlStr[:beginIndex] //表名
 	tableArr := strings.Fields(titleStr)
 	tableName = tableArr[len(tableArr)-1]
 	tableArr = strings.Split(tableName, "_")
-	var finalTableName string
 	for i := 0; i < len(tableArr); i++ {
-		finalTableName += strings.ToUpper(tableArr[i][:1]) + tableArr[i][1:]
+		structName += strings.ToUpper(tableArr[i][:1]) + tableArr[i][1:]
 	}
-	tableName = finalTableName
-	lastBracketIndex := strings.LastIndexAny(str, ")")
-	lastStr := str[lastBracketIndex+1:]
+	lastBracketIndex := strings.LastIndexAny(sqlStr, ")")
+	lastStr := sqlStr[lastBracketIndex+1:]
 	lastCommentIndex = strings.Index(lastStr, "COMMENT='")
-	if lastCommentIndex == -1 {
-		lastCommentIndex = strings.Index(lastStr, "comment='")
-	}
 	if lastCommentIndex != -1 {
 		tebaleRemark = lastStr[lastCommentIndex+9 : strings.LastIndex(lastStr, "'")]
+		resultStruct += "//" + tebaleRemark + "\n"
 	}
-	resultStruct += "//" + tebaleRemark + "\n"
-	resultStruct += "type " + tableName + " struct { \n"
-	endIndex := strings.Index(str, "PRIMARY KEY")
-	str = str[beginIndex+1 : endIndex]
-	str = strings.TrimSpace(str)
-	str = str[:len(str)-1]
-	arr := strings.Split(str, ",\n")
+	resultStruct += "type " + structName + " struct { \n"
+	endIndex := strings.Index(sqlStr, "PRIMARY KEY")
+	if endIndex == -1 {
+		endIndex = strings.LastIndex(sqlStr, ")")
+	}
+	sqlStr = sqlStr[beginIndex+1 : endIndex]
+	sqlStr = strings.TrimSpace(sqlStr)
+	sqlStr = sqlStr[:len(sqlStr)-1]
+	arr := strings.Split(sqlStr, ",\n")
 	var rowCount int
 	for i := 0; i < len(arr); i++ {
 		columns := arr[i]
 		spacingStr := strings.TrimSpace(columns)
 		spaceArr := strings.Fields(spacingStr) //以空格分割
-		var sname, stype, scomment, sremark string
+		var sname, stype, sremark string
 		spaceArrLen := len(spaceArr)
 		if spaceArrLen < 4 {
-			fmt.Println("不是字段,跳出循环")
 			continue
 		} else {
 			sname = spaceArr[0]
@@ -74,9 +139,9 @@ func NoopsycheCreateStruct(str, maxColunm string, isBson, isJson bool) (tebaleRe
 			if sIndex != -1 {
 				stype = stype[:sIndex]
 			}
-			scomment = spaceArr[spaceArrLen-2]
-			if strings.EqualFold("COMMENT", scomment) {
-				sremark = strings.Replace(spaceArr[spaceArrLen-1], "'", "", -1)
+			cIndex := strings.Index(columns, "COMMENT")
+			if cIndex != -1 {
+				sremark = strings.Replace(strings.TrimSpace(columns[cIndex+7:]), "'", "", -1)
 			}
 		}
 		if strings.EqualFold("TINYINT", stype) || strings.EqualFold("SMALLINT", stype) || strings.EqualFold("MEDIUMINT", stype) ||

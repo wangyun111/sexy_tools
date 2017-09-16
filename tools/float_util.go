@@ -25,7 +25,7 @@ func SubFloatToString(f float64, m int) string {
 }
 
 //截取小数点后几位
-func SubFloatToFloat(f float64, m int) float64 {
+func GetSeveralFloatString(f float64, m int) float64 {
 	newn := SubFloatToString(f, m)
 	newf, _ := strconv.ParseFloat(newn, 64)
 	return newf

@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -56,4 +57,10 @@ func GetOrderCode() string {
 
 	waitgroup.Wait() //.Wait()这里会发生阻塞，直到队列中所有的任务结束就会解除阻塞
 	return orderCode
+}
+
+func ValidatePhone(mobileNum string) bool {
+	Regular := "^((13[0-9])|(14[5|7])|(15([0-3]|[5-9]))|(18[0-9])|(17[0-9]))\\d{8}$"
+	reg := regexp.MustCompile(Regular)
+	return reg.MatchString(mobileNum)
 }

@@ -55,22 +55,18 @@ func CompareBothTime(timeOne, timeTwo string) (has bool, msg string) {
 }
 
 //比较前后参数是否在中间值之间
-func CompareAmongTime(timeOne, timeTwo, timeThree string) (has bool, msg string) {
-	msg = "success"
-	t1, err := time.Parse(Layout, timeOne)
+func CompareAmongTime(timeOne, timeTwo, timeThree string) (msg string, err error) {
+	local := time.Local
+	t1, err := time.ParseInLocation(Layout, timeOne, local)
 	if err != nil {
-		msg = err.Error()
 		return
 	}
-	t2, err := time.Parse(Layout, timeTwo)
+	t2, err := time.ParseInLocation(Layout, timeTwo, local)
 	if err != nil {
-		msg = err.Error()
 		return
 	}
-	t3, err := time.Parse(Layout, timeThree)
-	has = true
+	t3, err := time.ParseInLocation(Layout, timeThree, local)
 	if err != nil {
-		msg = err.Error()
 		return
 	}
 	if t1.After(t2) {
@@ -81,6 +77,7 @@ func CompareAmongTime(timeOne, timeTwo, timeThree string) (has bool, msg string)
 		msg = "inFinish"
 		return
 	}
+	msg = "success"
 	return
 }
 
@@ -143,17 +140,11 @@ func GetNowTime(l ...string) (nowTimeStr string) {
 }
 
 //解析为时间
-func GetParseTime(layout, parseTime string) (has bool, msg string, resultTime time.Time) {
-	has = true
-	msg = "success"
+func GetParseTime(layout, parseTime string) (resultTime time.Time, err error) {
 	if layout == "" {
 		layout = Layout
 	}
-	resultTime, err := time.Parse(layout, parseTime)
-	if err != nil {
-		has = false
-		msg = err.Error()
-	}
+	resultTime, err = time.ParseInLocation(layout, parseTime, time.Local)
 	return
 }
 
