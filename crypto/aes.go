@@ -5,7 +5,10 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"crypto/des"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"strings"
 )
 
 //des加密
@@ -86,4 +89,33 @@ func ZeroUnPadding(origData []byte) []byte {
 	length := len(origData)
 	unpadding := int(origData[length-1])
 	return origData[:(length - unpadding)]
+}
+
+// 3DES加密
+// Param origData: 明文
+// Param key: 密码
+// Param iv: 偏移量
+func YcTripleDesEncrypt(origData string, key, iv []byte) (str string, err1 error) {
+	defer func() {
+		if err2 := recover(); err2 != nil {
+			// 说明:  参数认证错误不要改动,
+			err1 = fmt.Errorf("%s", "数据输入有误")
+		}
+	}()
+	block, err := des.NewTripleDESCipher(key)
+	if err != nil {
+		return "", err
+	}
+	orig := PKCS5Padding([]byte(origData), block.BlockSize())
+	blockMode := cipher.NewCBCEncrypter(block, iv)
+	crypted := make([]byte, len(orig))
+	blockMode.CryptBlocks(crypted, orig)
+	return strings.ToUpper(hex.EncodeToString(crypted)), nil
+}
+
+// MD5 Hash string
+func MD5Hash(text string) string {
+	h := md5.New()
+	h.Write([]byte(text))
+	return fmt.Sprintf("%s", hex.EncodeToString(h.Sum(nil)))
 }
